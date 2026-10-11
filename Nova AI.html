@@ -1,0 +1,284 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Nova AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: full-screen chat (top bar + scrolling thread + composer). Plans open as a second full-screen view over it; payment lives only there. Single dark look by choice. */
+:root{
+  color-scheme:dark;
+  --bg:#000;--bg2:#0b0c0b;--line:#1d201e;--fg:#f1efe9;--mut:#8f938d;--acc:#2fd488;--acc-ink:#03140c;--warn:#f0b24a;
+  --display:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;
+  --body:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);overflow:hidden}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.app{height:100%;display:flex;flex-direction:column}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line);flex:none}
+.logo{font:800 21px/1 var(--display);letter-spacing:-.02em}
+.logo i{font-style:normal;color:var(--acc)}
+.tools{display:flex;gap:8px;align-items:center}
+.pill{font:500 12px var(--mono);color:var(--mut);border:1px solid var(--line);border-radius:99px;padding:6px 10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font:600 15px/1 var(--body);padding:11px 18px;border-radius:10px;border:1px solid var(--line);background:transparent;cursor:pointer;text-decoration:none;color:var(--fg)}
+.btn:hover{border-color:var(--acc)}
+.btn.main{background:var(--acc);border-color:var(--acc);color:var(--acc-ink)}
+.btn.small{padding:9px 14px;font-size:14px}
+.btn:disabled{opacity:.5;cursor:default}
+.thread{flex:1;overflow-y:auto;padding:20px 16px 8px;min-height:0}
+.col{max-width:760px;margin-inline:auto;display:flex;flex-direction:column;gap:14px}
+.empty{margin-block:9vh 0;text-align:center}
+.empty h1{font:800 clamp(32px,6vw,52px)/1.05 var(--display);letter-spacing:-.035em;text-wrap:balance}
+.empty h1 em{font-style:normal;color:var(--acc)}
+.empty p{color:var(--mut);margin-top:12px}
+.chips{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:26px}
+.chip{border:1px solid var(--line);background:var(--bg2);border-radius:12px;padding:10px 14px;font-size:14px;cursor:pointer;text-align:left}
+.chip:hover{border-color:var(--acc)}
+.m{max-width:85%;padding:10px 15px;border-radius:16px;white-space:pre-wrap;overflow-wrap:anywhere}
+.m.u{align-self:flex-end;background:var(--acc);color:var(--acc-ink);font-weight:500}
+.m.a{align-self:flex-start;max-width:100%;padding:2px 2px;white-space:normal;font-size:15.5px;line-height:1.7}
+.m.a p{margin:0 0 12px}.m.a>:last-child{margin-bottom:0}
+.m.a h4{font:600 16px/1.4 var(--body);margin:16px 0 6px}
+.m.a ul,.m.a ol{margin:0 0 12px;padding-left:22px}.m.a li{margin:0 0 6px;padding-left:2px}
+.m.a strong{font-weight:600}
+.m.a code{font:500 13.5px var(--mono);background:var(--bg2);border:1px solid var(--line);border-radius:6px;padding:1px 6px}
+.m.a pre{margin:0 0 12px;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;overflow-x:auto}
+.m.a pre code{background:none;border:0;padding:0;font-size:13px}
+.m.u{font-size:15.5px}
+.m.err{color:var(--warn)}
+.comp{flex:none;padding:10px 16px calc(14px + env(safe-area-inset-bottom,0px))}
+.comp form{max-width:760px;margin-inline:auto;display:flex;gap:8px;align-items:flex-end;background:var(--bg2);border:1px solid var(--line);border-radius:16px;padding:8px}
+.comp form:focus-within{border-color:var(--acc)}
+textarea:focus,textarea:focus-visible{outline:0;box-shadow:none}
+textarea{flex:1;min-width:0;resize:none;max-height:160px;font:inherit;background:transparent;color:var(--fg);border:0;outline:0;padding:8px 10px;line-height:1.5}
+.comp .note{max-width:760px;margin:8px auto 0;text-align:center;font-size:12px;color:var(--mut)}
+/* daily limit meter */
+.meter{max-width:760px;margin:0 auto 8px;display:flex;align-items:center;gap:10px;padding-inline:4px;font:500 12px var(--mono);color:var(--mut);letter-spacing:.01em}
+.meter b{color:var(--fg);font-weight:500}
+.mbar{flex:0 0 72px;height:4px;border-radius:99px;background:var(--line);overflow:hidden}
+.mbar i{display:block;height:100%;width:0;background:var(--acc);border-radius:99px;transition:width .3s}
+.meter.full .mbar i{background:var(--warn)}.meter.full b{color:var(--warn)}
+.mlink{margin-left:auto;background:none;border:0;color:var(--acc);font:600 12px var(--body);cursor:pointer;padding:2px 0;text-decoration:underline;text-underline-offset:3px}
+.toast{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom,0px));transform:translate(-50%,12px);background:var(--acc);color:var(--acc-ink);font:600 14px var(--body);padding:10px 16px;border-radius:99px;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:60;max-width:90vw;text-align:center}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+/* plans screen */
+.plansv{position:fixed;inset:0;background:var(--bg);z-index:30;overflow-y:auto;display:none;padding:0 16px calc(32px + env(safe-area-inset-bottom,0px));padding-top:env(safe-area-inset-top,0px)}
+.plansv.on{display:block}
+.pwrap{max-width:980px;margin-inline:auto}
+.pbar{display:flex;align-items:center;justify-content:space-between;padding-block:14px;position:sticky;top:0;background:var(--bg);z-index:2;border-bottom:1px solid var(--line)}
+.plansv h2{font:800 clamp(30px,5vw,46px)/1.05 var(--display);letter-spacing:-.03em;margin:34px 0 8px;text-wrap:balance}
+.sub{color:var(--mut);max-width:58ch;margin-bottom:28px}
+.plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.plan{border:1px solid var(--line);border-radius:14px;padding:20px;background:var(--bg2);display:flex;flex-direction:column;gap:6px;min-width:0;text-align:left;cursor:default}
+.plan[data-p]{cursor:pointer}
+.plan[aria-pressed=true]{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc) inset}
+.plan h3{font:600 14px var(--body);color:var(--mut);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tag{font:500 11px var(--mono);background:var(--acc);color:var(--acc-ink);padding:3px 8px;border-radius:99px}
+.price{font:800 34px/1.1 var(--display);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.price small{font:400 14px var(--body);color:var(--mut);letter-spacing:0}
+.plan ul{list-style:none;padding:0;display:grid;gap:6px;margin-top:10px;color:var(--mut);font-size:14px}
+.plan li{padding-left:20px;position:relative}
+.plan li::before{content:"";position:absolute;left:2px;top:.55em;width:10px;height:6px;border-left:2px solid var(--acc);border-bottom:2px solid var(--acc);transform:rotate(-45deg)}
+.pay{margin-top:26px;display:grid;grid-template-columns:1fr 1fr;gap:26px;align-items:start;border-top:1px solid var(--line);padding-top:26px}
+.pay[hidden]{display:none}
+.pay h3{font:700 22px/1.2 var(--display);letter-spacing:-.02em;margin-bottom:12px}
+.steps{display:grid;gap:16px;list-style:none;padding:0;counter-reset:s}
+.steps li{counter-increment:s;padding-left:44px;position:relative;font-size:15px}
+.steps li::before{content:counter(s);position:absolute;left:0;top:0;width:30px;height:30px;border-radius:50%;border:1px solid var(--acc);color:var(--acc);display:grid;place-items:center;font:500 13px var(--mono)}
+.steps b{display:block}.steps span{color:var(--mut)}
+.acct{border:1px solid var(--line);background:var(--bg2);border-radius:16px;padding:18px;min-width:0}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}
+.row small{display:block;color:var(--mut);font-size:12px}
+.row strong{font:500 17px var(--mono);overflow-wrap:anywhere}
+.copy{font:600 13px var(--body);padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:#000;cursor:pointer;flex:none}
+.copy:hover{border-color:var(--acc)}
+.acct .btn{width:100%;margin-top:12px}
+.warn{margin-top:12px;font-size:13px;color:var(--warn)}
+@media(max-width:760px){.pay{grid-template-columns:1fr}.pill.hide{display:none}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+
+<div class="toast" id="toast" role="status"></div>
+<div class="app">
+  <div class="bar">
+    <div class="logo">Nova<i>.</i>ai</div>
+    <div class="tools">
+      <span class="pill hide" id="planpill">Free plan</span>
+      <button class="btn small" id="newchat" hidden>New chat</button>
+      <button class="btn main small" id="plansbtn">Plans</button>
+    </div>
+  </div>
+
+  <div class="thread" id="thread"><div class="col" id="col">
+    <div class="empty" id="empty">
+      <h1>What can I help you <em>with</em>?</h1>
+      <p>Ask in English, اردو or Roman Urdu.</p>
+      <div class="chips" id="chips">
+        <button class="chip">Mujhe 10,000 rupay se business idea do</button>
+        <button class="chip">Explain photosynthesis for FSC Part 1</button>
+        <button class="chip">Write a short WhatsApp message to a customer</button>
+        <button class="chip">اردو میں ایک مختصر کہانی سنائیں</button>
+      </div>
+    </div>
+  </div></div>
+
+  <div class="comp">
+    <div class="meter" id="meter"><span id="mlabel"><b>0</b> / 8 free messages today</span><span class="mbar" id="mbar"><i id="mfill"></i></span><button class="mlink" id="mplans" type="button">Plans</button></div>
+    <form id="f">
+      <textarea id="q" rows="1" placeholder="Message Nova" aria-label="Message"></textarea>
+      <button class="btn main" id="send" type="submit">Send</button>
+    </form>
+    <p class="note" id="note">Nova can make mistakes. Check important facts.</p>
+  </div>
+</div>
+
+<div class="plansv" id="plansv" role="dialog" aria-modal="true" aria-label="Plans">
+  <div class="pwrap">
+    <div class="pbar"><div class="logo">Nova<i>.</i>ai</div><button class="btn small" id="back">← Back to chat</button></div>
+    <h2>Pick a plan</h2>
+    <p class="sub">Start free. Choose a paid plan when you want smarter, faster answers or no daily limit.</p>
+    <div class="plans">
+      <div class="plan"><h3>Free</h3><div class="price">Rs 0</div><ul><li>8 messages per day</li><li>Standard speed</li></ul></div>
+      <button class="plan" data-p="week" aria-pressed="false"><h3>Weekly</h3><div class="price">Rs 500 <small>/ week</small></div><ul><li>Smarter, faster answers</li><li>150 messages per day</li><li>Longer replies</li></ul></button>
+      <button class="plan" data-p="month" aria-pressed="false"><h3>Monthly <span class="tag">Most picked</span></h3><div class="price">Rs 1,000 <small>/ month</small></div><ul><li>Unlimited messages</li><li>Long, detailed answers</li></ul></button>
+      <button class="plan" data-p="year" aria-pressed="false"><h3>Yearly <span class="tag">Save 45%</span></h3><div class="price">Rs 6,500 <small>/ year</small></div><ul><li>Unlimited messages</li><li>Rs 542 a month, against Rs 1,000</li></ul></button>
+    </div>
+    <div class="pay" id="pay" hidden>
+      <div>
+        <h3 id="ptitle"></h3>
+        <ol class="steps">
+          <li><b>Tap Open JazzCash and pay</b><span>Your plan switches on right away, so you can start using it.</span></li>
+          <li><b>Send the exact amount</b><span>Use the name, number and amount shown. Copy each with one tap.</span></li>
+          <li><b>Keep your receipt</b><span>Save the JazzCash receipt in case the payment needs to be confirmed.</span></li>
+        </ol>
+      </div>
+      <div class="acct">
+        <div class="row"><div><small>Account name</small><strong>Yousaf Raza</strong></div><button class="copy" data-copy="Yousaf Raza">Copy</button></div>
+        <div class="row"><div><small>JazzCash number</small><strong>0300 8567731</strong></div><button class="copy" data-copy="03008567731">Copy</button></div>
+        <div class="row" style="border-bottom:0"><div><small>Amount to send</small><strong id="pamt"></strong></div><button class="copy" id="pamtc" data-copy="">Copy</button></div>
+        <a class="btn main" id="jc" href="https://www.jazzcash.com.pk" target="_blank" rel="noopener">Open JazzCash and pay</a>
+        <p class="warn">Check the name shows as Yousaf Raza before you confirm.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id)};
+  // ---- plans screen ----
+  var AMT={week:500,month:1000,year:6500},NM={free:'Free',week:'Weekly',month:'Monthly',year:'Yearly'};
+  function fmt(n){return 'Rs '+n.toLocaleString('en-US')}
+  var pv=$('plansv');
+  function openPlans(){pv.classList.add('on');pv.scrollTop=0;$('back').focus()}
+  function closePlans(){pv.classList.remove('on');$('q').focus()}
+  $('jc').addEventListener('click',function(){if(curPlan)activate(curPlan)});
+  $('plansbtn').onclick=openPlans;$('back').onclick=closePlans;
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&pv.classList.contains('on'))closePlans()});
+  function choose(p){
+    curPlan=p;
+    document.querySelectorAll('.plan[data-p]').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.p===p))});
+    $('pay').hidden=false;
+    $('ptitle').textContent=NM[p]+' plan · '+fmt(AMT[p]);
+    $('pamt').textContent=fmt(AMT[p]);$('pamtc').setAttribute('data-copy',String(AMT[p]));
+    setTimeout(function(){var y=$('pay').offsetTop-80;try{pv.scrollTo({top:y,behavior:'smooth'})}catch(e){pv.scrollTop=y}},30);
+  }
+  document.querySelectorAll('.plan[data-p]').forEach(function(b){b.onclick=function(){choose(b.dataset.p)}});
+  document.addEventListener('click',function(e){
+    var b=e.target.closest('[data-copy]');if(!b)return;
+    var v=b.getAttribute('data-copy'),old=b.textContent;
+    function ok(){b.textContent='Copied';setTimeout(function(){b.textContent=old},1400)}
+    function fb(){var t=document.createElement('textarea');t.value=v;document.body.appendChild(t);t.select();try{document.execCommand('copy');ok()}catch(x){b.textContent='Select & copy'}t.remove()}
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(v).then(ok,fb)}else fb();
+  });
+
+  // ---- chat ----
+  var RULES='You are Nova, a fast, friendly AI assistant for people in Pakistan. Reply in the language the user writes in (English, Urdu, or Roman Urdu). Write like a helpful person in a chat: short, clear paragraphs in plain text. Do not use headings, tables, horizontal rules or emoji. Use a simple list only for steps or options, and bold only for a key term. Keep answers brief unless the user asks for detail. If asked what you are, say you are Nova, an AI assistant, and that you do not know which model powers you.';
+  var ERR={not_granted:'Claude access was declined, so chat is off for this visit. Reload the page to allow it.',sampling_disabled:'Chat is not available on this account.',rate_limited:'Too many messages. Wait a moment and try again.',session_expired:'Sign in again to keep chatting.',refused:'I cannot help with that one. Try asking something else.'};
+  function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+  function inl(s){return s.replace(/`([^`]+)`/g,'<code>$1</code>').replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')}
+  function md(src){
+    var blocks=[],t=src.replace(/```[a-zA-Z]*\n?([\s\S]*?)(```|$)/g,function(_,c){blocks.push(c.replace(/\n$/,''));return '\u0000'+(blocks.length-1)+'\u0000'});
+    var out=[],list=null;
+    function close(){if(list){out.push('</'+list+'>');list=null}}
+    esc(t).split('\n').forEach(function(l){
+      var m;
+      if((m=l.match(/^\u0000(\d+)\u0000$/))){close();out.push('<pre><code>'+esc(blocks[m[1]])+'</code></pre>');return}
+      if((m=l.match(/^\s*[-*\u2022]\s+(.*)$/))){if(list!=='ul'){close();out.push('<ul>');list='ul'}out.push('<li>'+inl(m[1])+'</li>');return}
+      if((m=l.match(/^\s*\d+[.)]\s+(.*)$/))){if(list!=='ol'){close();out.push('<ol>');list='ol'}out.push('<li>'+inl(m[1])+'</li>');return}
+      close();
+      if((m=l.match(/^#{1,6}\s+(.*)$/))){out.push('<h4>'+inl(m[1].replace(/\*\*/g,''))+'</h4>');return}
+      if(!l.trim())return;
+      out.push('<p>'+inl(l)+'</p>');
+    });
+    close();return out.join('');
+  }
+  function show(el,text){el.innerHTML=md(text)}
+  var turns=[],busy=false,ctl=null,sample=null;
+  var col=$('col'),thread=$('thread'),q=$('q'),send=$('send');
+  function add(t,c){var d=document.createElement('div');d.className='m '+c;d.textContent=t;col.appendChild(d);thread.scrollTop=thread.scrollHeight;return d}
+  function setBusy(b){busy=b;send.textContent=b?'Stop':'Send';send.type=b?'button':'submit'}
+  function grow(){q.style.height='auto';q.style.height=Math.min(q.scrollHeight,160)+'px'}
+  // ---- daily free-message meter (kept in this browser) ----
+  var PLIM={free:8,week:150,month:Infinity,year:Infinity},PDAYS={week:7,month:30,year:365},memUsed=0,memPlan=null,curPlan='';
+  function getPlan(){try{var r=JSON.parse(localStorage.getItem('nova_plan')||'null');if(r&&PLIM[r.p]&&r.until>Date.now())return r}catch(e){}return memPlan&&memPlan.until>Date.now()?memPlan:null}
+  function planKey(){var r=getPlan();return r?r.p:'free'}
+  function limit(){return PLIM[planKey()]}
+  function toast(t){var el=$('toast');el.textContent=t;el.classList.add('on');setTimeout(function(){el.classList.remove('on')},2600)}
+  function activate(p){
+    var r={p:p,until:Date.now()+PDAYS[p]*864e5};memPlan=r;
+    try{localStorage.setItem('nova_plan',JSON.stringify(r))}catch(e){}
+    meter();toast(NM[p]+' plan is on');
+  }
+  function today(){var d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()}
+  function used(){try{var r=JSON.parse(localStorage.getItem('nova_day')||'{}');return r.d===today()?(r.n||0):0}catch(e){return memUsed}}
+  function setUsed(n){memUsed=n;try{localStorage.setItem('nova_day',JSON.stringify({d:today(),n:n}))}catch(e){}}
+  function meter(){
+    var k=planKey(),lim=PLIM[k],n=used(),r=getPlan(),full=lim!==Infinity&&n>=lim;
+    var until=r?new Date(r.until).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'';
+    if(lim===Infinity){$('mlabel').innerHTML='<b>Unlimited</b> messages · '+NM[k]+' until '+until;$('mbar').hidden=true}
+    else{$('mbar').hidden=false;$('mfill').style.width=(Math.min(n,lim)/lim*100)+'%';
+      $('mlabel').innerHTML='<b>'+Math.min(n,lim)+'</b> / '+lim+(k==='free'?' free':'')+' messages today'+(r?' · '+NM[k]:'')}
+    $('meter').classList.toggle('full',full);
+    $('planpill').textContent=NM[k]?NM[k]+' plan':'Free plan';
+    document.querySelectorAll('.plan[data-p]').forEach(function(c){
+      var t=c.querySelector('.curtag');if(t)t.remove();
+      if(r&&c.dataset.p===k){var s=document.createElement('span');s.className='tag curtag';s.textContent='Current';c.querySelector('h3').appendChild(s)}
+    });
+    q.disabled=full&&!busy;q.placeholder=full?'Daily limit reached. Open Plans for more.':'Message Nova';
+    send.disabled=full&&!busy;
+  }
+  function bump(){setUsed(used()+1);meter()}
+  $('mplans').onclick=openPlans;
+  q.addEventListener('input',grow);
+  q.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();$('f').requestSubmit()}});
+  send.addEventListener('click',function(){if(busy&&ctl)ctl.abort()});
+  document.querySelectorAll('#chips .chip').forEach(function(c){c.onclick=function(){q.value=c.textContent;grow();$('f').requestSubmit()}});
+  $('newchat').onclick=function(){if(busy&&ctl)ctl.abort();turns=[];col.querySelectorAll('.m').forEach(function(m){m.remove()});$('empty').hidden=false;$('newchat').hidden=true;q.focus()};
+
+  $('f').onsubmit=function(e){
+    e.preventDefault();
+    var t=q.value.trim();if(!t||busy)return;
+    if(used()>=limit()){openPlans();return}
+    if(!sample){$('empty').hidden=true;add(t,'u');add('Chat needs a Claude account on this page. Sign in to Claude and open the page again.','a err');q.value='';grow();return}
+    q.value='';grow();$('empty').hidden=true;$('newchat').hidden=false;
+    add(t,'u');turns.push({role:'user',content:t});
+    var w=add('Thinking...','a');ctl=new AbortController();setBusy(true);
+    sample([{role:'user',content:RULES}].concat(turns.slice(-14)),{cache:false,modelTier:(planKey()==='week'?'default':'quick'),signal:ctl.signal,onText:function(u){show(w,u.text);thread.scrollTop=thread.scrollHeight}})
+    .then(function(r){turns.push({role:'assistant',content:r.text});show(w,r.text);bump()})
+    .catch(function(err){
+      if(err&&err.code==='cancelled'){if(err.text){turns.push({role:'assistant',content:err.text});show(w,err.text);bump()}else{turns.pop();w.remove()}return}
+      if(err&&err.text){turns.push({role:'assistant',content:err.text});show(w,err.text+'\n\n(Interrupted. Send again to continue.)');bump();return}
+      turns.pop();w.textContent=ERR[err&&err.code]||'Something went wrong. Try again.';w.classList.add('err');
+    })
+    .then(function(){ctl=null;setBusy(false);meter();if(!q.disabled)q.focus()});
+  };
+  meter();
+  (window.claude&&window.claude.use?window.claude.use('sample'):Promise.resolve(null)).then(function(s){sample=s;if(!s)$('note').textContent='Open this page while signed in to Claude to chat.'}).catch(function(){});
+})();
+</script>
+
+</body></html>
